@@ -93,6 +93,18 @@ func extractFavorite(_ obj: NSDictionary) -> Bool {
     return favorite != 0
 }
 
+func extractImages(_ obj: NSDictionary) -> [Data]? {
+    guard let images = obj["Image"] as? [[String:Any]] else {
+        return nil
+    }
+
+    return images
+        .sorted(by: { a, b in
+            return (a["displayOrder"] as! Int) < (b["displayOrder"] as! Int)
+        })
+        .map({d in d["data"] as! Data})
+}
+
 func convertRecipe(filename: String) throws -> [String:Any] {
     let data = try Data(contentsOf: URL(fileURLWithPath: filename))
     let obj = NSKeyedUnarchiver.unarchiveObject(with: data) as! NSDictionary
@@ -120,6 +132,10 @@ func convertRecipe(filename: String) throws -> [String:Any] {
 
     if extractFavorite(obj) {
         recipe["on_favorites"] = "yes"
+    }
+
+    if let images = extractImages(obj) {
+        recipe["photo"] = images[0]
     }
 
     return recipe
