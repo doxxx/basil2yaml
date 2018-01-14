@@ -134,6 +134,10 @@ func extractImages(_ obj: NSDictionary) -> [Data]? {
         })
 }
 
+func extractNotes(_ obj: NSDictionary) -> String? {
+    return obj["notes"] as? String
+}
+
 func convertRecipe(filename: String, excludeImages:Bool) throws -> [String:Any] {
     let data = try Data(contentsOf: URL(fileURLWithPath: filename))
     let obj = NSKeyedUnarchiver.unarchiveObject(with: data) as! NSDictionary
@@ -169,6 +173,10 @@ func convertRecipe(filename: String, excludeImages:Bool) throws -> [String:Any] 
                 recipe["photo"] = images[0]
             }
         }
+    }
+
+    if let notes = extractNotes(obj) {
+        recipe["notes"] = notes
     }
 
     return recipe
