@@ -134,7 +134,7 @@ func extractImages(_ obj: NSDictionary) -> [Data]? {
         })
 }
 
-func convertRecipe(filename: String) throws -> [String:Any] {
+func convertRecipe(filename: String, excludeImages:Bool) throws -> [String:Any] {
     let data = try Data(contentsOf: URL(fileURLWithPath: filename))
     let obj = NSKeyedUnarchiver.unarchiveObject(with: data) as! NSDictionary
 
@@ -163,9 +163,11 @@ func convertRecipe(filename: String) throws -> [String:Any] {
         recipe["on_favorites"] = "yes"
     }
 
-    if let images = extractImages(obj) {
-        if images.count > 0 {
-            recipe["photo"] = images[0]
+    if !excludeImages {
+        if let images = extractImages(obj) {
+            if images.count > 0 {
+                recipe["photo"] = images[0]
+            }
         }
     }
 
@@ -183,20 +185,21 @@ let main = Group {
         Option("output-dir", default: ".", description: "Output individual yml files in the specified directory."),
         Flag("use-recipe-name", description: "Use the recipe name for the yml file instead of the original filename."),
         Flag("combine", description: "Combine all recipes into a multi-recipe yml file written to stdout"),
+        Flag("exclude-images", description: "Exclude images"),
         VariadicArgument("filenames", description: "One or more Basil .recipe files"),
         description: "Converts one or more Basilc .recipe files to .yml files")
-    { (outputDir:String, useRecipeName:Bool, combine:Bool, filenames:[String]) in
+    { (outputDir:String, useRecipeName:Bool, combine:Bool, excludeImages:Bool, filenames:[String]) in
         if combine {
             var recipes: [[String:Any]] = []
             for filename in filenames {
                 print("Loading \(filename)...", to: &standardError)
-                let recipe = try convertRecipe(filename: filename)
+                let recipe = try convertRecipe(filename: filename, excludeImages:excludeImages)
                 recipes.append(recipe)
             }
             print(try Yams.dump(object: recipes))
         } else {
             for filename in filenames {
-                let recipe = try convertRecipe(filename: filename)
+                let recipe = try convertRecipe(filename: filename, excludeImages:excludeImages)
                 let yaml = try Yams.dump(object: recipe)
                 var outFilename: String
                 if useRecipeName {
