@@ -214,6 +214,43 @@ let main = Group {
             }
         }
     }
+
+    $0.command(
+        "combine",
+        Option("output-file", default: "all.yml", description: "Output file path"),
+        VariadicArgument("filenames", description: "Files to combine"),
+        description: "Combines multiple recipe .yml files into singly .yml file"
+    )
+    { (outFilename:String, filenames:[String]) in
+        var recipes: [[String:Any]] = []
+        for filename in filenames {
+            print("Loading \(filename)...", to: &standardError)
+            let fileURL = URL(fileURLWithPath: filename)
+            let recipeText = try String(contentsOf: fileURL)
+            if var recipe = try Yams.load(yaml: recipeText) as? [String:Any] {
+                if recipe["ingredients"]! is NSNull {
+                    print("Fixing ingredients field.", to: &standardError)
+                    recipe["ingredients"] = ""
+                }
+                if recipe["directions"]! is NSNull {
+                    print("Fixing directions field.", to: &standardError)
+                    recipe["directions"] = ""
+                }
+                do {
+                    let _ = try Yams.dump(object: recipe)
+                    recipes.append(recipe)
+                } catch let e {
+                    print("Bad recipe file: \(filename): \(e.localizedDescription)", to: &standardError)
+                    debugPrint(recipe)
+                }
+            } else {
+                print("Failed to load \(filename).", to: &standardError)
+            }
+        }
+        print("Writing all recipes to \(outFilename)...")
+        let recipesText = try Yams.dump(object: recipes)
+        try recipesText.write(toFile: outFilename, atomically: true, encoding: String.Encoding.utf8)
+    }
 }
 
 
