@@ -41,7 +41,7 @@ basil2yaml --output-dir converted/ --use-recipe-name basil/*.recipe
 ```
 
 ```
-basil2yaml --combined basil/*.recipe > all.yml
+basil2yaml --combine basil/*.recipe > all.yml
 ```
 
 ### combine command
