@@ -195,7 +195,7 @@ let main = Group {
         Flag("combine", description: "Combine all recipes into a multi-recipe yml file written to stdout"),
         Flag("exclude-images", description: "Exclude images"),
         VariadicArgument("filenames", description: "One or more Basil .recipe files"),
-        description: "Converts one or more Basilc .recipe files to .yml files")
+        description: "Converts one or more Basil .recipe files to .yml files")
     { (outputDir:String, useRecipeName:Bool, combine:Bool, excludeImages:Bool, filenames:[String]) in
         if combine {
             var recipes: [[String:Any]] = []
