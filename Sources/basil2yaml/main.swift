@@ -2,6 +2,15 @@ import Foundation
 import Yams
 import Commander
 
+extension FileHandle : TextOutputStream {
+    public func write(_ string: String) {
+        guard let data = string.data(using: .utf8) else { return }
+        self.write(data)
+    }
+}
+
+var standardError = FileHandle.standardError
+
 func clean(_ s: String) -> String {
     return s.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 }
@@ -102,7 +111,27 @@ func extractImages(_ obj: NSDictionary) -> [Data]? {
         .sorted(by: { a, b in
             return (a["displayOrder"] as! Int) < (b["displayOrder"] as! Int)
         })
-        .map({d in d["data"] as! Data})
+        .flatMap({d in
+            if let data = d["Data"] as? Data {
+                return data
+            } else if let urlText = d["url"] as? String {
+                print("Missing photo data, loading URL: \(urlText)", to: &standardError)
+                if let url = URL(string: urlText) {
+                    do {
+                        return try Data(contentsOf: url)
+                    } catch {
+                        return nil
+                    }
+                } else {
+                    return nil
+                }
+            } else if let thumbnail = d["thumbnail"] as? Data {
+                print("Missing photo data or URL, using thumbnail.", to: &standardError)
+                return thumbnail
+            } else {
+                return nil
+            }
+        })
 }
 
 func convertRecipe(filename: String) throws -> [String:Any] {
@@ -135,7 +164,9 @@ func convertRecipe(filename: String) throws -> [String:Any] {
     }
 
     if let images = extractImages(obj) {
-        recipe["photo"] = images[0]
+        if images.count > 0 {
+            recipe["photo"] = images[0]
+        }
     }
 
     return recipe
@@ -158,6 +189,7 @@ let main = Group {
         if combine {
             var recipes: [[String:Any]] = []
             for filename in filenames {
+                print("Loading \(filename)...", to: &standardError)
                 let recipe = try convertRecipe(filename: filename)
                 recipes.append(recipe)
             }
@@ -174,11 +206,12 @@ let main = Group {
                     let name = URL(fileURLWithPath: filename).lastPathComponent
                     outFilename = "\(outputDir)/\(name).yml"
                 }
-                print("Converting \(filename) to \(outFilename)...")
+                print("Converting \(filename) to \(outFilename)...", to: &standardError)
                 try yaml.write(toFile: outFilename, atomically: true, encoding: String.Encoding.utf8)
             }
         }
     }
 }
+
 
 main.run()
